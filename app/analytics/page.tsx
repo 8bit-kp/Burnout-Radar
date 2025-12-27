@@ -161,11 +161,17 @@ export default function AnalyticsPage() {
 
   const fetchAnalyticsHistory = async () => {
     try {
+      console.log('Fetching analytics history for user:', user?.uid);
       const response = await fetch(`/api/analytics?userId=${user?.uid}`);
       const data = await response.json();
       
+      console.log('Analytics history response:', data);
+      
       if (data.analytics) {
+        console.log(`Found ${data.analytics.length} analytics entries`);
         setAnalyticsHistory(data.analytics);
+      } else {
+        console.log('No analytics found in response');
       }
     } catch (err) {
       console.error('Error fetching analytics history:', err);
@@ -304,12 +310,12 @@ export default function AnalyticsPage() {
               <p className="text-sm text-slate-600">Language pattern insights from your journal entries</p>
             </div>
             <div className="flex gap-3">
-              {analyticsHistory.length > 1 && (
+              {analyticsHistory.length > 0 && (
                 <button
                   onClick={() => setShowHistory(!showHistory)}
                   className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2"
                 >
-                  📅 History ({analyticsHistory.length})
+                  📅 History {analyticsHistory.length > 1 && `(${analyticsHistory.length})`}
                 </button>
               )}
               <button
@@ -330,6 +336,7 @@ export default function AnalyticsPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
         {/* Analytics History Dropdown */}
         {showHistory && analyticsHistory.length > 0 && (
           <div className="mb-6 bg-white rounded-xl shadow-lg border border-slate-200 p-4">
@@ -393,12 +400,12 @@ export default function AnalyticsPage() {
             <div>
               ✅ Analytics up to date! Viewing insights from {new Date(lastAnalyzedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} ({lastAnalyzedJournalCount} journals analyzed)
             </div>
-            {analyticsHistory.length > 1 && (
+            {analyticsHistory.length > 0 && (
               <button
                 onClick={() => setShowHistory(true)}
-                className="text-xs text-green-800 hover:text-green-900 underline"
+                className="px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 cursor-pointer transition-colors"
               >
-                View History
+                📅 View History ({analyticsHistory.length})
               </button>
             )}
           </div>
@@ -409,12 +416,12 @@ export default function AnalyticsPage() {
             <div>
               ⚠️ You have {journalCount - (lastAnalyzedJournalCount || 0)} new journal(s) since last analysis. Generate new analytics to see updated insights!
             </div>
-            {analyticsHistory.length > 1 && (
+            {analyticsHistory.length > 0 && (
               <button
                 onClick={() => setShowHistory(true)}
-                className="text-xs text-amber-800 hover:text-amber-900 underline"
+                className="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 cursor-pointer transition-colors"
               >
-                View History
+                📅 View History ({analyticsHistory.length})
               </button>
             )}
           </div>

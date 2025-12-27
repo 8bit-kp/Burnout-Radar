@@ -72,24 +72,53 @@ export async function GET(request: NextRequest) {
       });
     } else {
       // Get all analytics for user
-      const q = query(
-        collection(db, 'analytics'),
-        where('userId', '==', userId),
-        orderBy('date', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      
-      let analytics = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt.toDate().toISOString(),
-      }));
+      try {
+        const q = query(
+          collection(db, 'analytics'),
+          where('userId', '==', userId),
+          orderBy('date', 'desc')
+        );
+        const snapshot = await getDocs(q);
+        
+        let analytics = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt.toDate().toISOString(),
+        }));
 
-      if (limit) {
-        analytics = analytics.slice(0, parseInt(limit));
+        if (limit) {
+          analytics = analytics.slice(0, parseInt(limit));
+        }
+
+        console.log(`Returning ${analytics.length} analytics for user ${userId}`);
+        return NextResponse.json({ analytics });
+      } catch (queryError) {
+        // If composite index is missing, try without orderBy
+        console.log('Query with orderBy failed, trying without...');
+        const q = query(
+          collection(db, 'analytics'),
+          where('userId', '==', userId)
+        );
+        const snapshot = await getDocs(q);
+        
+        let analytics = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt.toDate().toISOString(),
+        }));
+
+        // Sort in memory by date descending
+        analytics.sort((a: any, b: any) => {
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        });
+
+        if (limit) {
+          analytics = analytics.slice(0, parseInt(limit));
+        }
+
+        console.log(`Returning ${analytics.length} analytics (sorted in memory)`);
+        return NextResponse.json({ analytics });
       }
-
-      return NextResponse.json({ analytics });
     }
 
   } catch (error) {
