@@ -48,7 +48,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    // Use gemini-flash-latest for better free tier support
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
     const journalText = journals
       .map((j: JournalEntry) => `Date: ${j.date}\nEntry: ${j.text}`)
@@ -122,8 +123,23 @@ ${journalText}`;
 
   } catch (error) {
     console.error('Gemini API error:', error);
+    
+    let errorMessage = 'Failed to analyze journals';
+    
+    if (error instanceof Error) {
+      if (error.message.includes('quota') || error.message.includes('429')) {
+        errorMessage = 'API quota exceeded. Please try again later or check your Gemini API quota.';
+      } else if (error.message.includes('API_KEY_INVALID') || error.message.includes('invalid')) {
+        errorMessage = 'Invalid API key. Please check your GEMINI_API_KEY in .env.local';
+      } else if (error.message.includes('404') || error.message.includes('not found')) {
+        errorMessage = 'Model not found. The Gemini model might not be available.';
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to analyze journals' },
+      { error: errorMessage, details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

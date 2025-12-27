@@ -4,7 +4,7 @@ import { db } from '@/lib/firebase';
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, date, analyticsJSON } = await request.json();
+    const { userId, date, analyticsJSON, journalCount } = await request.json();
 
     if (!userId || !date || !analyticsJSON) {
       return NextResponse.json(
@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       userId,
       date,
       analyticsJSON,
+      journalCount: journalCount || 0, // Store how many journals were analyzed
       createdAt: Timestamp.now(),
     });
 

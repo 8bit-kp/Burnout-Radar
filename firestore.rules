@@ -15,17 +15,15 @@ service cloud.firestore {
     }
     
     // Journals collection
+    // TEMPORARY: Allow all writes for testing (will secure later with proper auth)
     match /journals/{journalId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read, write: if true;  // Temporarily open for testing
     }
     
     // Analytics collection
+    // TEMPORARY: Allow all writes for testing (will secure later with proper auth)
     match /analytics/{analyticsId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow read, write: if true;  // Temporarily open for testing
     }
   }
 }

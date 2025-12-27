@@ -8,7 +8,7 @@ import {
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, isFirebaseConfigured } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -27,6 +27,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isFirebaseConfigured || !auth) {
+      console.error('Firebase is not configured. Check your environment variables.');
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
@@ -36,14 +42,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    if (!isFirebaseConfigured || !auth) {
+      throw new Error('Firebase is not configured. Please add your Firebase credentials to .env.local');
+    }
     await signInWithEmailAndPassword(auth, email, password);
   };
 
   const signUp = async (email: string, password: string) => {
+    if (!isFirebaseConfigured || !auth) {
+      throw new Error('Firebase is not configured. Please add your Firebase credentials to .env.local');
+    }
     await createUserWithEmailAndPassword(auth, email, password);
   };
 
   const signOut = async () => {
+    if (!isFirebaseConfigured || !auth) {
+      throw new Error('Firebase is not configured. Please add your Firebase credentials to .env.local');
+    }
     await firebaseSignOut(auth);
   };
 

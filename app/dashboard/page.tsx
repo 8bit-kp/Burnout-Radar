@@ -23,6 +23,8 @@ export default function DashboardPage() {
   const [selectedJournal, setSelectedJournal] = useState<Journal | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [fetchingJournals, setFetchingJournals] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -31,18 +33,35 @@ export default function DashboardPage() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    if (user) {
+    if (user && journals.length === 0) {
       fetchJournals();
     }
   }, [user]);
 
   const fetchJournals = async () => {
+    if (!user?.uid || fetchingJournals) return;
+    
+    setFetchingJournals(true);
     try {
-      const response = await fetch(`/api/journals?userId=${user?.uid}`);
+      console.log('Fetching journals for user:', user.uid);
+      const startTime = Date.now();
+      
+      const response = await fetch(`/api/journals?userId=${user.uid}`, {
+        cache: 'no-store' // Ensure we get fresh data
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to fetch journals:', response.status);
+        return;
+      }
+      
       const data = await response.json();
+      console.log(`Fetched ${data.journals?.length || 0} journals in ${Date.now() - startTime}ms`);
       setJournals(data.journals || []);
     } catch (error) {
       console.error('Error fetching journals:', error);
+    } finally {
+      setFetchingJournals(false);
     }
   };
 
@@ -53,10 +72,15 @@ export default function DashboardPage() {
     }
 
     setLoading(true);
-    setMessage('');
+    setSaveSuccess(false);
+    
+    // Show immediate feedback
+    setMessage('💾 Saving...');
 
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      
+      console.log('Saving journal:', { userId: user?.uid, date: dateStr, textLength: journalText.length });
       
       const response = await fetch('/api/journals', {
         method: 'POST',
@@ -69,34 +93,88 @@ export default function DashboardPage() {
       });
 
       const data = await response.json();
+      console.log('Response data:', data);
 
-      if (data.success) {
-        setMessage('Journal saved successfully!');
+      if (response.ok && data.success) {
+        // Show success message immediately
+        setSaveSuccess(true);
+        setMessage('✓ Journal saved successfully!');
+        setLoading(false);
+        
+        // Update or add the journal in the list (optimistic update)
+        const existingIndex = journals.findIndex(j => j.date === dateStr);
+        const savedJournal: Journal = {
+          id: data.id,
+          userId: user!.uid,
+          date: dateStr,
+          text: journalText,
+          createdAt: new Date().toISOString(),
+        };
+        
+        if (existingIndex >= 0) {
+          // Update existing
+          setJournals(prev => {
+            const updated = [...prev];
+            updated[existingIndex] = savedJournal;
+            return updated;
+          });
+        } else {
+          // Add new
+          setJournals(prev => [...prev, savedJournal]);
+        }
+        
+        // Clear form and show the saved journal
         setJournalText('');
         setSelectedDate(null);
-        await fetchJournals();
+        setSelectedJournal(savedJournal);
+        
+        // Clear success message after 2 seconds
+        setTimeout(() => {
+          setMessage('');
+          setSaveSuccess(false);
+        }, 2000);
       } else {
-        setMessage(data.error || 'Failed to save journal');
+        setMessage('✗ ' + (data.error || 'Failed to save journal'));
+        setLoading(false);
       }
     } catch (error) {
-      setMessage('Error saving journal');
-      console.error(error);
-    } finally {
+      console.error('Error saving journal:', error);
+      setMessage('✗ Error saving journal: ' + (error instanceof Error ? error.message : 'Unknown error'));
       setLoading(false);
     }
   };
 
-  const handleDateClick = (date: Date) => {
+  const handleDateClick = async (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    const journal = journals.find(j => j.date === dateStr);
+    const existingJournal = journals.find(j => j.date === dateStr);
     
-    if (journal) {
-      setSelectedJournal(journal);
+    if (existingJournal) {
+      // Show existing journal in view mode
+      setSelectedJournal(existingJournal);
       setSelectedDate(null);
+      setJournalText('');
     } else {
+      // Check if there's a saved journal on the server we don't have locally
       setSelectedDate(date);
       setSelectedJournal(null);
       setJournalText('');
+      setLoading(true);
+      
+      try {
+        const response = await fetch(`/api/journals?userId=${user?.uid}&date=${dateStr}`);
+        const data = await response.json();
+        
+        if (data.journal) {
+          // Found existing journal on server, show it
+          setSelectedJournal(data.journal);
+          setSelectedDate(null);
+          setJournalText('');
+        }
+      } catch (error) {
+        console.error('Error checking for existing journal:', error);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -130,6 +208,12 @@ export default function DashboardPage() {
             <p className="text-sm text-slate-600">Understanding your patterns from daily expression</p>
           </div>
           <div className="flex gap-4 items-center">
+            <button
+              onClick={() => router.push('/journals')}
+              className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              All Journals
+            </button>
             <button
               onClick={() => router.push('/analytics')}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -227,12 +311,24 @@ export default function DashboardPage() {
                   <h2 className="text-xl font-semibold text-slate-900">
                     {format(parseISO(selectedJournal.date), 'MMMM d, yyyy')}
                   </h2>
-                  <button
-                    onClick={() => setSelectedJournal(null)}
-                    className="text-slate-600 hover:text-slate-900"
-                  >
-                    ✕
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setJournalText(selectedJournal.text);
+                        setSelectedDate(parseISO(selectedJournal.date));
+                        setSelectedJournal(null);
+                      }}
+                      className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      ✎ Edit
+                    </button>
+                    <button
+                      onClick={() => setSelectedJournal(null)}
+                      className="text-slate-600 hover:text-slate-900"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
                 <div className="prose max-w-none">
                   <p className="text-slate-700 whitespace-pre-wrap">{selectedJournal.text}</p>
@@ -241,13 +337,15 @@ export default function DashboardPage() {
             ) : selectedDate ? (
               <>
                 <h2 className="text-xl font-semibold text-slate-900 mb-4">
-                  New Entry: {format(selectedDate, 'MMMM d, yyyy')}
+                  {journals.some(j => j.date === format(selectedDate, 'yyyy-MM-dd')) ? 'Edit' : 'New'} Entry: {format(selectedDate, 'MMMM d, yyyy')}
                 </h2>
                 
                 {message && (
                   <div className={`mb-4 px-4 py-3 rounded ${
-                    message.includes('success') 
+                    message.includes('success') || message.includes('✓')
                       ? 'bg-green-50 border border-green-200 text-green-700' 
+                      : message.includes('Saving')
+                      ? 'bg-blue-50 border border-blue-200 text-blue-700'
                       : 'bg-amber-50 border border-amber-200 text-amber-700'
                   }`}>
                     {message}
@@ -258,7 +356,7 @@ export default function DashboardPage() {
                   value={journalText}
                   onChange={(e) => setJournalText(e.target.value)}
                   placeholder="Write about your day, thoughts, experiences..."
-                  className="w-full h-64 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full h-64 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none placeholder:text-slate-500"
                 />
 
                 <div className="mt-4 flex gap-3">
@@ -267,7 +365,7 @@ export default function DashboardPage() {
                     disabled={loading || !journalText.trim()}
                     className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors font-medium"
                   >
-                    {loading ? 'Saving...' : 'Save Journal Entry'}
+                    {loading ? 'Saving...' : journals.some(j => j.date === format(selectedDate, 'yyyy-MM-dd')) ? 'Update Journal Entry' : 'Save Journal Entry'}
                   </button>
                   <button
                     onClick={() => {
