@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { AnalyticsData } from '@/lib/types';
+import { History } from 'lucide-react';
 import { 
   RadarChart, 
   PolarGrid, 
@@ -315,7 +316,8 @@ export default function AnalyticsPage() {
                   onClick={() => setShowHistory(!showHistory)}
                   className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2"
                 >
-                  📅 History {analyticsHistory.length > 1 && `(${analyticsHistory.length})`}
+                  <History className="w-4 h-4" />
+                  History {analyticsHistory.length > 1 && `(${analyticsHistory.length})`}
                 </button>
               )}
               <button
@@ -403,9 +405,10 @@ export default function AnalyticsPage() {
             {analyticsHistory.length > 0 && (
               <button
                 onClick={() => setShowHistory(true)}
-                className="px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 cursor-pointer transition-colors"
+                className="px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 cursor-pointer transition-colors flex items-center gap-2"
               >
-                📅 View History ({analyticsHistory.length})
+                <History className="w-4 h-4" />
+                View History ({analyticsHistory.length})
               </button>
             )}
           </div>
@@ -419,9 +422,10 @@ export default function AnalyticsPage() {
             {analyticsHistory.length > 0 && (
               <button
                 onClick={() => setShowHistory(true)}
-                className="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 cursor-pointer transition-colors"
+                className="px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 cursor-pointer transition-colors flex items-center gap-2"
               >
-                📅 View History ({analyticsHistory.length})
+                <History className="w-4 h-4" />
+                View History ({analyticsHistory.length})
               </button>
             )}
           </div>
