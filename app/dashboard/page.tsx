@@ -239,7 +239,7 @@ export default function DashboardPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
-                  className="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50"
+                  className="px-3 py-2 border-2 border-slate-400 rounded-lg hover:bg-slate-100 hover:border-slate-600 transition-colors text-slate-700 font-bold text-lg"
                 >
                   ←
                 </button>
@@ -248,7 +248,7 @@ export default function DashboardPage() {
                 </span>
                 <button
                   onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))}
-                  className="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50"
+                  className="px-3 py-2 border-2 border-slate-400 rounded-lg hover:bg-slate-100 hover:border-slate-600 transition-colors text-slate-700 font-bold text-lg"
                 >
                   →
                 </button>
