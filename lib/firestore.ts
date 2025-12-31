@@ -7,14 +7,24 @@ import {
   query, 
   where, 
   orderBy, 
-  Timestamp 
+  Timestamp,
+  Firestore
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Journal, Analytics } from './types';
 
+// Helper to ensure db is available
+const getDb = (): Firestore => {
+  if (!db) {
+    throw new Error('Firebase is not configured. Please check your environment variables.');
+  }
+  return db;
+};
+
 // Journal operations
 export const saveJournal = async (journal: Omit<Journal, 'id'>) => {
-  const journalRef = doc(collection(db, 'journals'));
+  const firestore = getDb();
+  const journalRef = doc(collection(firestore, 'journals'));
   await setDoc(journalRef, {
     ...journal,
     createdAt: Timestamp.now(),
@@ -23,8 +33,9 @@ export const saveJournal = async (journal: Omit<Journal, 'id'>) => {
 };
 
 export const getJournalByDate = async (userId: string, date: string): Promise<Journal | null> => {
+  const firestore = getDb();
   const q = query(
-    collection(db, 'journals'),
+    collection(firestore, 'journals'),
     where('userId', '==', userId),
     where('date', '==', date)
   );
@@ -40,8 +51,9 @@ export const getJournalByDate = async (userId: string, date: string): Promise<Jo
 };
 
 export const getUserJournals = async (userId: string): Promise<Journal[]> => {
+  const firestore = getDb();
   const q = query(
-    collection(db, 'journals'),
+    collection(firestore, 'journals'),
     where('userId', '==', userId),
     orderBy('date', 'desc')
   );
@@ -56,7 +68,8 @@ export const getUserJournals = async (userId: string): Promise<Journal[]> => {
 
 // Analytics operations
 export const saveAnalytics = async (analytics: Omit<Analytics, 'id'>) => {
-  const analyticsRef = doc(collection(db, 'analytics'));
+  const firestore = getDb();
+  const analyticsRef = doc(collection(firestore, 'analytics'));
   await setDoc(analyticsRef, {
     ...analytics,
     createdAt: Timestamp.now(),
@@ -65,8 +78,9 @@ export const saveAnalytics = async (analytics: Omit<Analytics, 'id'>) => {
 };
 
 export const getAnalyticsByDate = async (userId: string, date: string): Promise<Analytics | null> => {
+  const firestore = getDb();
   const q = query(
-    collection(db, 'analytics'),
+    collection(firestore, 'analytics'),
     where('userId', '==', userId),
     where('date', '==', date)
   );
@@ -82,8 +96,9 @@ export const getAnalyticsByDate = async (userId: string, date: string): Promise<
 };
 
 export const getUserAnalytics = async (userId: string, limit?: number): Promise<Analytics[]> => {
+  const firestore = getDb();
   const q = query(
-    collection(db, 'analytics'),
+    collection(firestore, 'analytics'),
     where('userId', '==', userId),
     orderBy('date', 'desc')
   );

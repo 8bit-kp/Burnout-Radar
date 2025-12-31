@@ -13,6 +13,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!db) {
+      return NextResponse.json(
+        { error: 'Firebase is not configured' },
+        { status: 500 }
+      );
+    }
+
     const docRef = await addDoc(collection(db, 'analytics'), {
       userId,
       date,
@@ -46,6 +53,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'userId is required' },
         { status: 400 }
+      );
+    }
+
+    if (!db) {
+      return NextResponse.json(
+        { error: 'Firebase is not configured' },
+        { status: 500 }
       );
     }
 
